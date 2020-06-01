@@ -1,0 +1,3 @@
+exports({
+    hello: "5"
+})

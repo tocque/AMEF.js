@@ -1,0 +1,29 @@
+{
+  "name": "amef",
+  "version": "0.0.1",
+  "description": "a half MVVM framework not rely on babel",
+  "scripts": {
+    "test": "gulp test",
+    "release": "gulp release"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tocque/AMEF.js.git"
+  },
+  "keywords": [
+    "framework",
+    "mvvm"
+  ],
+  "author": "tocque",
+  "bugs": {
+    "url": "https://github.com/tocque/AMEF.js.git"
+  },
+  "dependencies": {
+    "@types/gulp": "^4.0.6",
+    "gulp": "^4.0.2",
+    "rollup": "^2.12.0",
+    "rollup-plugin-typescript2": "^0.27.1",
+    "typescript": "^3.9.3"
+  },
+  "homepage": "https://github.com/tocque/AMEF.js#readme"
+}

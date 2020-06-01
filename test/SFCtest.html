@@ -1,0 +1,26 @@
+<template>
+    <div class="unit">
+        <input type="text" &money/>
+        <span @click="console.log('ok')">商店的价格是: {{ @money }}</span>
+        下一次是 {{ @money + 2 }} 元
+        <mt-icon icon="close"></mt-icon>
+    </div>
+</template>
+
+<amd-dependency path="./mt-icon.js"/>
+<script>
+    exports({
+        name: "view-shop",
+        setup() {
+            this.$data = {
+                money: 10
+            }
+        }
+    });
+</script>
+
+<style>
+.main {
+    font-size: 20px;
+}
+</style>
