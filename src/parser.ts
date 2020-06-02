@@ -155,9 +155,35 @@ export const textParser = function(tpl: string): [number, string][] {
  */
 export const expressionParser = function(tpl: string): { ref: { [key: string]: string; }; experssion: string; } {
     const ref = {};
-    tpl = tpl.replace(/@([a-z]+)/g, (all, name: string) => {
-        ref[name] = true;
-        return "this." + name;
-    });
-    return { ref, experssion: tpl };
+    let state = 0;
+    let varLast = 0;
+    let quotationMark: string;
+    const tokens = [];
+    for (let i = 0; i < tpl.length; i++) {
+        const ch = tpl[i];
+        switch(state) {
+            case 0: { // 正常匹配
+                if (ch === '@') { // 匹配到变量
+                    tokens.push(tpl.slice(varLast, i));
+                    varLast = i+1;
+                    // state = 2;
+                } else if (/"'`/.test(ch)) { // 是字符串
+                    quotationMark = ch;
+                    state = 1;
+                }
+            } break;
+            case 1: { // 引号分析
+                if (quotationMark == ch) { // 匹配到字符串结尾
+                    state = 0;
+                }
+            } break;
+            // case 2: { // 匹配变量
+            //     if (!/[\w$]/.test(ch)) { // 变量结束
+            //         state = 0;
+            //     }
+            // } break;
+        }
+    }
+    tokens.push(tpl.slice(varLast, tpl.length));
+    return { ref, experssion: tokens.join("this.") };
 }
