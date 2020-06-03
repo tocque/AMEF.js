@@ -2,6 +2,8 @@
  * 模块化系统的支持类
  */
 
+import { transpiler } from "./transpiler";
+
 class Module {
     hook: Promise<any> // 加载状态
     _content: any // 模块内容
@@ -60,52 +62,40 @@ const importCSS = async function(url: string) {
     })
 }
 
-/**
- * export的工厂函数, 返回一个export函数供模块使用
- * @param {string} path
- * @returns {(obj: any) => void}
- */
-const _export = function(path: string): (obj: any) => void {
-    return (m) => {
-        if (cache[path].content) {
-            throw Error(`在导入${path}时出现了错误: 模块进行了多次导出`);
-        }
-        cache[path]._content = m;
-    }
-}
-
-const depReg = /\/\/\/ *<amd-dependency +path=["']([\w\.\/-]+)["']( +name=["']([\w$]+)["'])? *\/>/g;
-
-const processJS = async function(script: string, url: string) {
-    let res: RegExpExecArray;
-    const deps = [];
+const processJS = async function(rawscript: string, url: string) {
     const headstrs = [];
-    console.log(script);
-    // @ts-ignore
-    AMEF.__temp__[url] = {};
-    while(res = depReg.exec(script)) {
-        const path = res[1], name = res[3];
-        deps.push(_import(path, url).then((m) => {
-            console.log(path, name);
-            if (name) {
-                headstrs.push(`var ${name} = AMEF.__temp__["${url}"]["${path}"]\n`);
-                // @ts-ignore
-                AMEF.__temp__[url][path] = m;
-            }
-        }));
-    }
+    AMEF.__module__[url] = {};
+    const { imports, exports, script } = transpiler(rawscript);
+    const deps = Object.entries(imports||{}).map(([path, dep]) => {
+        if (Array.isArray(dep)) { // 有导出模块
+            const uri = resolvePath(url, path);
+            dep.forEach((e) => {
+                if (Array.isArray(e)) {
+                    if (e[0] === "*") { // 导出全部
+                        headstrs.push(`var ${e[1]} = AMEF.__module__["${uri}"];`);
+                    } else {
+                        headstrs.push(`var ${e[1]} = AMEF.__module__["${uri}"]["${e[0]}"];`);
+                    }
+                } else {
+                    headstrs.push(`var ${e} = AMEF.__module__["${uri}"]["${e}"];`);
+                }
+            })
+        }
+        return _import(path, url);
+    });
     await Promise.all(deps);
-    // @ts-ignore
-    AMEF.__temp__[url]["@exports"] = _export(url);
     const elm = document.createElement("script");
-    console.log(headstrs);
-    script = /* js */`(function(exports) {
-        /** @file ${ url } */
-        ${ headstrs.join('\n') } 
-        ${ script }
-    })(AMEF.__temp__["${ url }"]["@exports"])`;
-    elm.innerHTML = script;
+    elm.innerHTML = /* js */`"use strict";
+/** @file ${ url } */
+(function(exports) {
+${ headstrs.join('\n') } 
+${ script }
+${ exports ? exports.map(e => `exports.${e} = ${e};`).join('\n') : "" }
+})(AMEF.__module__["${ url }"])
+    `;
+    console.log(elm.innerHTML);
     document.body.appendChild(elm);
+    cache[url]._content = AMEF.__module__[url];
 }
 
 const importJS = async function(url: string) {
@@ -125,17 +115,12 @@ const importSFC = async function(url: string) {
             sandbox.innerHTML = sfc;
             const script = sandbox.content.querySelector("script").innerHTML;
             const template = sandbox.content.querySelector("template").innerHTML;
-            const deps = sandbox.content.querySelectorAll("amd-dependency");
-            const depOrders = [];
-            deps.forEach((e) => {
-                const path = e.getAttribute('path');
-                const name = e.getAttribute('name');
-                depOrders.push(`/// <amd-dependency path="${path}" ${name? 'name="' + path + "'": ""}/>`);
-            });
             const styles = sandbox.content.querySelectorAll("style");
-            await processJS(depOrders.join('\n') + script, url);
+            await processJS(script, url);
             styles.forEach((e) => document.body.appendChild(e));
-            cache[url]._content.template = template;
+            if (template && cache[url].content.default) {
+                cache[url]._content.default.template = template;
+            }
             return cache[url].content;
         })
 }
@@ -163,7 +148,7 @@ export const registerLoader = function(suffix: string, loader: (path: string) =>
  * @param {string} path 要引入模块的路径
  * @param {string} now 当前模块的路径
  */
-export const _import = async function(path: string, now = "."): Promise<any> {
+export const _import = async function(path: string, now: string = "."): Promise<any> {
     const suffix = path.split(".").slice(-1)[0];
     path = resolvePath(now, path);
     console.log(suffix, path, now);
