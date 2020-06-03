@@ -5,6 +5,7 @@
  */
 import { _import, registerLoader } from "./module";
 import { tagParser, textParser, expressionParser, ASTNode } from "./parser"
+import { tokenizer, transpiler } from "./transpiler"
 
 /**
  * 驼峰转连字符
@@ -296,7 +297,7 @@ class AMEFComponent {
             const tagName = tagContent.tagName;
             const isComponent = tagName.includes("-");
             if (isComponent) { // 有连字符则判断为组件
-                const component = this.$components[tagName] || AMEF._global[tagName];
+                const component = this.$components[tagName] || AMEF.__component__[tagName];
                 if (!component) {
                     throw Error(`未注册的组件: <${tagName}></${tagName}>`);
                 }
@@ -354,12 +355,14 @@ class AMEFComponent {
     }
 }
 
-const AMEF = new class {
+class AMEFProto {
     Component = AMEFComponent
     import = _import
     registerLoader = registerLoader
-    _global: { [key: string]: AMEFComponentConfig } = {};
-    __temp__ = {};
+    __component__: { [key: string]: AMEFComponentConfig } = {}
+    __module__ = {}
+    tokenize = tokenizer
+    transpile = transpiler
 
     /**
      * 注册一个全局组件
@@ -372,14 +375,14 @@ const AMEF = new class {
         if (!name) {
             console.error("请提供组件名称, 错误组件: " + component);
             return;
-        } else if (name in this._global) {
+        } else if (name in this.__component__) {
             console.error(`已经注册了同名组件, 错误组件: <${name}></${name}>`);
             return;
         } else if (!name.includes("-")) {
             console.error(`组件名称必须包含连字符, 错误组件: <${name}></${name}>`);
             return;
         }
-        this._global[name] = component;
+        this.__component__[name] = component;
     }
 
     /**
@@ -388,9 +391,13 @@ const AMEF = new class {
      * @returns {AMEFComponent}
      */
     instance(name: string): AMEFComponent {
-        return new AMEFComponent(this._global[name]);
+        return new AMEFComponent(this.__component__[name]);
     }
 }
 
+declare global {
+    const AMEF: AMEFProto
+}
+
 // @ts-ignore
-window.AMEF = AMEF;
+window.AMEF = new AMEFProto();
