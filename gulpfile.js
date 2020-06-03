@@ -37,14 +37,14 @@ task('test', async() => {
 })
 
 task('release', async() => {
-    await rollup.rollup({
+    const bundle = await rollup.rollup({
         input: 'src/AMEF.ts',
         plugins: [
             tsLoader()
         ],
-        output: {
-            file: 'dist/AMEF.js',
-            format: 'iife'
-        }
+    });
+    bundle.write({
+        file: "dist/AMEF.js",
+        format: 'iife'
     });
 })
