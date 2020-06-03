@@ -7,16 +7,16 @@
     </div>
 </template>
 
-<amd-dependency path="./mt-icon.js"/>
 <script>
-    exports({
+    import "./mt-icon.js";
+    export default {
         name: "view-shop",
         setup() {
             this.$data = {
                 money: 10
             }
         }
-    });
+    };
 </script>
 
 <style>

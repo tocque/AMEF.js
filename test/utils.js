@@ -1,3 +1,3 @@
-exports({
+export default {
     hello: "5"
-})
+}

@@ -1,4 +1,4 @@
-/// <amd-dependency path="./utils.js" name="utils"/>
+import utils from "./utils.js"
 
 AMEF.register("mt-icon", {
     template: /* HTML */`

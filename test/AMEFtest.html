@@ -10,10 +10,28 @@
     <script src="../dist/AMEF.js"></script>
     <script>
         AMEF.import("./SFCtest.html").then(function(m) {
-            console.log(m);
-            var vm = new AMEF.Component(m);
+            console.log(m.default);
+            var vm = new AMEF.Component(m.default);
             vm.$mount("#test");
         });
+        // fetch("../test/control.js")
+        //     .then(e => e.text())
+        //     .then(e => {
+        //         console.log(AMEF.tokenize(e));
+        //     });
+        const { imports, exports, script }  = AMEF.transpile(/* js */`
+            import * as utils from "utils.js"
+            import loader from "loader.js"
+            import "fs.js"
+            import AMEF, { transpiler } from "AMEF.js";
+
+            export const a = 0;
+            export default class {
+
+            }
+        `);
+        console.log({ imports, exports });
+        console.log(script);
     </script>
 </body>
 </html>
